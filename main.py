@@ -3,7 +3,13 @@ import pathlib
 import time
 from datetime import datetime
 import shutil
+from tkinter import Tk, Label, Button, StringVar
+from tkinter import filedialog
+
 from formats import image_formats, video_formats
+
+total_files = 0
+copied_files = 0
 
 
 def determine_file_type(file_path):
@@ -26,8 +32,6 @@ def create_sub_folders(directory):
         if not os.path.exists(folder):
             os.makedirs(folder)
             print(f"Létrehozva: {folder}")
-        else:
-            print(f"A mappa már létezik: {folder}")
 
 
 def get_file_name(file_path):
@@ -36,8 +40,11 @@ def get_file_name(file_path):
 
 
 def copy_file(source_path, destination_path):
+    global copied_files
     try:
         shutil.copy2(source_path, destination_path)
+        copied_files += 1
+        update_progress_label()
         print(f"A fájl sikeresen másolva: {destination_path}")
     except FileNotFoundError as e:
         print("A forrásfájl nem található.")
@@ -54,8 +61,6 @@ def create_folder_for_date(date_str):
             os.makedirs(folder_path)
             print(f"A mappa létrehozva: {folder_path}")
             create_sub_folders(folder_path)
-        else:
-            print(f"A mappa már létezik: {folder_path}")
         return folder_path
     except ValueError as e:
         print(f"Hiba történt: {e}")
@@ -66,6 +71,8 @@ def file_search(root):
 
 
 def get_create_time(path):
+    global total_files
+    total_files = len(data)
     ti_m = os.path.getmtime(path)
     m_ti = time.ctime(ti_m)
     t_obj = time.strptime(m_ti)
@@ -80,5 +87,28 @@ def progres_json(json_data):
         get_create_time(item)
 
 
-data = file_search("./")
-progres_json(data)
+def update_progress_label():
+    percent = (copied_files / total_files) * 100
+    progress_var.set(f"{copied_files}/{total_files} fájl másolva ({percent:.2f}%)")
+    root.update_idletasks()
+
+
+def select_folder():
+    folder_selected = filedialog.askdirectory()
+    if folder_selected:
+        global data
+        data = file_search(folder_selected)
+        progres_json(data)
+
+
+root = Tk()
+root.title("Fájl másoló GUI")
+
+progress_var = StringVar()
+progress_label = Label(root, textvariable=progress_var)
+progress_label.pack()
+
+select_folder_button = Button(root, text="Mappa kiválasztása", command=select_folder)
+select_folder_button.pack()
+
+root.mainloop()
